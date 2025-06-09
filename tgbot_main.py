@@ -5,20 +5,20 @@ import logging
 import os
 import datetime # For ConversationHandler timeout
 
-from telegram import Update # For type hinting if needed, though mostly handled in telegram_handlers
-from telegram.ext import Application, ConversationHandler
+from telegram import Update # For type hinting if needed
+from telegram.ext import Application, ConversationHandler, MessageHandler, CommandHandler, filters
 
 # --- Config and Setup ---
 from config import (
     TELEGRAM_BOT_TOKEN,
-    PDF_OUTPUT_DIR,
+    # PDF_OUTPUT_DIR, # Закомментировано, так как PDF генерируется в памяти
     TEXT_OUTPUT_DIR,
     GOOGLE_API_KEY # For initial check
 )
 # Logger setup must be one of the first imports to configure logging early
 from logger_setup import logger # Imports the already configured logger instance
 
-from pdf_generator import register_font
+from pdf_generator import register_font # Импортируем функцию регистрации шрифта
 from gemini_utils import init_gemini
 
 # --- Telegram Handlers ---
@@ -36,8 +36,6 @@ from telegram_handlers import (
     CHOOSE_RACE, CHOOSE_CLASS, CHOOSE_BACKGROUND, CHOOSE_ALIGNMENT,
     GET_LOCATION, GET_STATS_PREF, GET_DETAILS,
 )
-from telegram.ext import MessageHandler, CommandHandler, filters # Ensure these are imported if used directly
-
 
 def main() -> None:
     # --- Initial Checks and Setup ---
@@ -51,20 +49,22 @@ def main() -> None:
         logger.error("Не удалось инициализировать Gemini. Проверьте API ключ и настройки. Бот не может запуститься.")
         exit(1)
 
-    os.makedirs(PDF_OUTPUT_DIR, exist_ok=True)
+    # Создаем директорию только для текстовых логов LLM
+    # os.makedirs(PDF_OUTPUT_DIR, exist_ok=True) # Закомментировано
     os.makedirs(TEXT_OUTPUT_DIR, exist_ok=True)
-    logger.info(f"Директории для вывода созданы/проверены: {PDF_OUTPUT_DIR}, {TEXT_OUTPUT_DIR}")
+    logger.info(f"Директория для текстовых логов LLM создана/проверена: {TEXT_OUTPUT_DIR}")
 
-    register_font() # Register custom font for PDF if specified
+    register_font() # Регистрируем шрифт для PDF при старте бота
 
     # --- Telegram Bot Application ---
+    # Рекомендуется использовать более высокие таймауты для production, если API Gemini может отвечать долго
     application = (
         Application.builder()
         .token(TELEGRAM_BOT_TOKEN)
-        .read_timeout(30)
-        .write_timeout(30)
+        .read_timeout(60) # Увеличено
+        .write_timeout(60) # Увеличено
         .connect_timeout(30)
-        .pool_timeout(30) # For HTTPX connection pooling
+        .pool_timeout(60) # Увеличено
         .build()
     )
 
@@ -80,16 +80,13 @@ def main() -> None:
             GET_DETAILS: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_details_and_generate)],
         },
         fallbacks=[CommandHandler("cancel", cancel), CommandHandler("start", start)],
-        per_user=True, # Important for user-specific conversation data
-        conversation_timeout=datetime.timedelta(minutes=15) # Use datetime.timedelta
+        per_user=True,
+        conversation_timeout=datetime.timedelta(minutes=20) # Немного увеличено время ожидания
     )
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(conv_handler)
-    # Adding cancel as a top-level command as well, in case it's missed in fallbacks
-    # (though fallbacks should catch it if user is in a conversation)
-    application.add_handler(CommandHandler("cancel", cancel))
-
+    application.add_handler(CommandHandler("cancel", cancel)) # Дополнительный обработчик отмены вне диалога
 
     logger.info("Бот запускается...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)

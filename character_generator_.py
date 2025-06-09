@@ -1,8 +1,9 @@
+
+# character_generator.py
 import logging
 import os
 from config import (
     TEXT_OUTPUT_DIR,
-    PDF_OUTPUT_DIR,
     GEMINI_MODEL_NAME,
     SYSTEM_MESSAGE_FULL_CHAR_GEMINI_PREFIX
 )
@@ -11,7 +12,7 @@ from gemini_utils import (
     parse_character_profile,
     get_timestamp_filename
 )
-from pdf_generator import create_character_sheet_pdf
+from pdf_generator import create_character_sheet_pdf # Убедитесь, что импорт правильный
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,10 @@ async def generate_dnd_character_profile_for_bot(
 
     raw_llm_response = generate_content_with_gemini(full_prompt_for_gemini, temperature=0.85)
 
+    pdf_buffer_to_return = None # Инициализируем буфер для возврата
+
     if raw_llm_response and not raw_llm_response.startswith(("ЗАПРОС ЗАБЛОКИРОВАН", "КОНТЕНТ ЗАБЛОКИРОВАН", "ОШИБКА API", "Модель не вернула", "Модель вернула пустой")):
+        # Сохранение текстового файла ответа LLM (это можно оставить, если полезно для отладки)
         text_filename_base = f"character_profile_text_{user_id}"
         text_filename_ts = get_timestamp_filename(text_filename_base, "txt", GEMINI_MODEL_NAME)
         text_filepath = os.path.join(TEXT_OUTPUT_DIR, text_filename_ts)
@@ -54,7 +58,7 @@ async def generate_dnd_character_profile_for_bot(
             with open(text_filepath, "w", encoding="utf-8") as f:
                 f.write(f"UserID: {user_id}\nМодель: {GEMINI_MODEL_NAME}\nТемпература: 0.85\n\n")
                 f.write(f"--- ЗАПРОС ПОЛЬЗОВАТЕЛЯ (обработанный) ---\n{user_request_string}\n\n")
-                f.write(f"--- ПОЛНЫЙ ПРОМПТ ДЛЯ GEMINI ---\n{full_prompt_for_gemini[0]}\n\n") # full_prompt_for_gemini is a list
+                f.write(f"--- ПОЛНЫЙ ПРОМПТ ДЛЯ GEMINI ---\n{full_prompt_for_gemini[0]}\n\n")
                 f.write(f"--- ОТВЕТ LLM (СЫРОЙ) ---\n{raw_llm_response}")
             logger.info(f"Сырой текстовый результат для user_id {user_id} сохранен в: {text_filepath}")
         except Exception as e_save_text:
@@ -62,14 +66,36 @@ async def generate_dnd_character_profile_for_bot(
 
         parsed_profile = parse_character_profile(raw_llm_response)
 
-        char_name_for_file = "".join(c if c.isalnum() else "_" for c in parsed_profile.get('name', 'UnknownCharacter'))
-        pdf_filename_base = f"DND_Character_{char_name_for_file}_{user_id}"
-        pdf_filename_ts = get_timestamp_filename(pdf_filename_base, "pdf") # Model name removed from PDF filename for brevity
-        pdf_filepath = os.path.join(PDF_OUTPUT_DIR, pdf_filename_ts)
+        if parsed_profile: # Только если парсинг был успешным
+            # Генерация PDF в памяти
+            pdf_buffer_to_return = create_character_sheet_pdf(parsed_profile)
+            # Логика сохранения PDF на диск УДАЛЕНА, так как мы используем буфер.
+            # Если нужно сохранять PDF локально для отладки, можно добавить код сюда,
+            # но он не должен влиять на возвращаемый pdf_buffer_to_return.
+            # Пример (для локальной отладки, НЕ для деплоя на PaaS):
+            # if pdf_buffer_to_return:
+            #     char_name_for_file = "".join(c if c.isalnum() else "_" for c in parsed_profile.get('name', 'UnknownCharacter'))
+            #     debug_pdf_filename_base = f"DEBUG_DND_Character_{char_name_for_file}_{user_id}"
+            #     debug_pdf_filename_ts = get_timestamp_filename(debug_pdf_filename_base, "pdf")
+            #     debug_pdf_filepath = os.path.join(PDF_OUTPUT_DIR, debug_pdf_filename_ts) # Нужен PDF_OUTPUT_DIR в config
+            #     try:
+            #         with open(debug_pdf_filepath, "wb") as f_pdf:
+            #             f_pdf.write(pdf_buffer_to_return.getvalue()) # Записываем содержимое буфера
+            #         logger.info(f"Отладочный PDF сохранен: {debug_pdf_filepath}")
+            #         pdf_buffer_to_return.seek(0) # Важно сбросить указатель буфера после getvalue()
+            #     except Exception as e_save_debug_pdf:
+            #         logger.error(f"Ошибка сохранения отладочного PDF: {e_save_debug_pdf}")
 
-        pdf_created = create_character_sheet_pdf(parsed_profile, pdf_filepath)
 
-        return {"text_profile": raw_llm_response, "pdf_filepath": pdf_filepath if pdf_created else None, "parsed_data": parsed_profile}
+        return {
+            "text_profile": raw_llm_response,
+            "pdf_buffer": pdf_buffer_to_return, # Возвращаем буфер
+            "parsed_data": parsed_profile
+        }
     else:
         logger.error(f"Не удалось получить валидный ответ от LLM для user_id {user_id}. Ответ: {raw_llm_response}")
-        return {"text_profile": raw_llm_response, "pdf_filepath": None, "parsed_data": None}
+        return {
+            "text_profile": raw_llm_response,
+            "pdf_buffer": None, # Возвращаем None для буфера
+            "parsed_data": None
+        }

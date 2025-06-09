@@ -1,6 +1,8 @@
 import logging
 import os
 import traceback
+import io # <--- ДОБАВЛЕН ИМПОРТ
+
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import (
     SimpleDocTemplate,
@@ -15,13 +17,17 @@ from reportlab.lib import colors
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase import pdfmetrics
 
-from config import FONT_PATH_FOR_BOT_SESSION
+from config import FONT_PATH_FOR_BOT_SESSION # Убедитесь, что этот импорт есть
 
 logger = logging.getLogger(__name__)
-HAS_DEJAVU_FONT = False
+HAS_DEJAVU_FONT = False # Эта глобальная переменная будет установлена функцией register_font
 
 def register_font():
-    global HAS_DEJAVU_FONT
+    """
+    Регистрирует шрифт для использования в PDF.
+    Эту функцию следует вызывать один раз при старте приложения.
+    """
+    global HAS_DEJAVU_FONT # Указываем, что будем изменять глобальную переменную
     if FONT_PATH_FOR_BOT_SESSION and os.path.exists(FONT_PATH_FOR_BOT_SESSION):
         try:
             pdfmetrics.registerFont(TTFont('DejaVuSans', FONT_PATH_FOR_BOT_SESSION))
@@ -29,28 +35,34 @@ def register_font():
             logger.info(f"Шрифт {FONT_PATH_FOR_BOT_SESSION} зарегистрирован для PDF.")
         except Exception as e:
             logger.error(f"Ошибка при регистрации шрифта для PDF: {e}")
-            HAS_DEJAVU_FONT = False
+            HAS_DEJAVU_FONT = False # Явно устанавливаем в False при ошибке
     else:
         path_info = FONT_PATH_FOR_BOT_SESSION if FONT_PATH_FOR_BOT_SESSION else "<<путь не указан в config.py>>"
         logger.warning(f"Файл шрифта для PDF не найден или не определён: '{path_info}'. Будет использован Helvetica.")
         HAS_DEJAVU_FONT = False
 
-def create_character_sheet_pdf(character_data, pdf_filename):
+def create_character_sheet_pdf(character_data):
+    """
+    Создает PDF-файл с листом персонажа в буфере памяти.
+    Возвращает объект io.BytesIO с PDF-данными или None в случае ошибки.
+    """
+    pdf_buffer = io.BytesIO()
     try:
-        doc = SimpleDocTemplate(pdf_filename, pagesize=A4,
+        # HAS_DEJAVU_FONT должна быть установлена вызовом register_font() при старте бота
+        doc = SimpleDocTemplate(pdf_buffer, pagesize=A4,
                                 rightMargin=40, leftMargin=40,
                                 topMargin=40, bottomMargin=40)
         story = []
 
         styles = getSampleStyleSheet()
+        # Используем значение HAS_DEJAVU_FONT, установленное при старте
         font_name = 'DejaVuSans' if HAS_DEJAVU_FONT else 'Helvetica'
-        font_name_bold = 'DejaVuSans' if HAS_DEJAVU_FONT else 'Helvetica-Bold' # reportlab expects specific names
+        font_name_bold = 'DejaVuSans' if HAS_DEJAVU_FONT else 'Helvetica-Bold'
 
         style_normal = ParagraphStyle('NormalCustom', parent=styles['Normal'], fontName=font_name, fontSize=10, leading=12, alignment=TA_JUSTIFY)
         style_h1 = ParagraphStyle('H1Custom', parent=styles['h1'], fontName=font_name_bold, fontSize=18, leading=22, alignment=TA_CENTER, spaceAfter=12)
         style_h2 = ParagraphStyle('H2Custom', parent=styles['h2'], fontName=font_name_bold, fontSize=12, leading=14, spaceBefore=10, spaceAfter=4, alignment=TA_LEFT)
         style_label = ParagraphStyle('LabelCustom', parent=style_normal, fontName=font_name_bold)
-
 
         story.append(Paragraph(character_data.get("name", "Безымянный Герой"), style_h1))
         story.append(Spacer(1, 6))
@@ -94,9 +106,10 @@ def create_character_sheet_pdf(character_data, pdf_filename):
         story.append(traits_table)
 
         doc.build(story)
-        logger.info(f"PDF успешно создан: {pdf_filename}")
-        return True
+        logger.info(f"PDF успешно создан в памяти.")
+        pdf_buffer.seek(0) # Важно! Переместить указатель в начало буфера перед возвратом
+        return pdf_buffer
     except Exception as e:
-        logger.error(f"Ошибка при создании PDF {pdf_filename}: {e}")
+        logger.error(f"Ошибка при создании PDF в памяти: {e}")
         logger.error(traceback.format_exc())
-        return False
+        return None # Возвращаем None в случае ошибки
