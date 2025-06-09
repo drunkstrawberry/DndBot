@@ -9,7 +9,7 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN") # ЗАМЕНИТЕ ВАШИ
 OUTPUT_DIR_BOT_GENERATED = "telegram_bot_generated_characters"
 PDF_OUTPUT_DIR = os.path.join(OUTPUT_DIR_BOT_GENERATED, "pdfs")
 TEXT_OUTPUT_DIR = os.path.join(OUTPUT_DIR_BOT_GENERATED, "texts")
-
+FONT_PATH_FOR_BOT_SESSION = os.getenv("FONT_PATH_FOR_BOT_SESSION", "")
 # --- Путь к Шрифту для PDF ---
 # Укажите путь к файлу шрифта DejaVuSans.ttf или другому .ttf шрифту с поддержкой кириллицы
 # Например: FONT_PATH_FOR_BOT_SESSION = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
