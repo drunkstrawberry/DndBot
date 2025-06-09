@@ -1,9 +1,9 @@
 import os
 
 # --- Ключи и Настройки Модели ---
-GOOGLE_API_KEY = "api_ключ_google_ai_studio"  # ЗАМЕНИТЕ ВАШИМ КЛЮЧОМ
+GOOGLE_API_KEY = "GOOGLE_API_KEY"  # ЗАМЕНИТЕ ВАШИМ КЛЮЧОМ
 GEMINI_MODEL_NAME = "gemini-1.5-flash-latest"
-TELEGRAM_BOT_TOKEN = "токен_твоего_телеграм_бота" # ЗАМЕНИТЕ ВАШИМ ТОКЕНОМ
+TELEGRAM_BOT_TOKEN = "TELEGRAM_BOT_TOKEN" # ЗАМЕНИТЕ ВАШИМ ТОКЕНОМ
 
 # --- Пути к Директориям ---
 OUTPUT_DIR_BOT_GENERATED = "telegram_bot_generated_characters"
