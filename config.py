@@ -1,9 +1,9 @@
 import os
 
 # --- Ключи и Настройки Модели ---
-GOOGLE_API_KEY = os.getenv"GOOGLE_API_KEY"  # ЗАМЕНИТЕ ВАШИМ КЛЮЧОМ
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")  # ЗАМЕНИТЕ ВАШИМ КЛЮЧОМ
 GEMINI_MODEL_NAME = "gemini-1.5-flash-latest"
-TELEGRAM_BOT_TOKEN = os.getenv"TELEGRAM_BOT_TOKEN" # ЗАМЕНИТЕ ВАШИМ ТОКЕНОМ
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN") # ЗАМЕНИТЕ ВАШИМ ТОКЕНОМ
 
 # --- Пути к Директориям ---
 OUTPUT_DIR_BOT_GENERATED = "telegram_bot_generated_characters"
