@@ -14,7 +14,7 @@ FONT_PATH_FOR_BOT_SESSION = os.getenv("FONT_PATH_FOR_BOT_SESSION", "")
 # Укажите путь к файлу шрифта DejaVuSans.ttf или другому .ttf шрифту с поддержкой кириллицы
 # Например: FONT_PATH_FOR_BOT_SESSION = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 # Если оставить пустым или None, будет использован стандартный шрифт Helvetica (без кириллицы)
-FONT_PATH_FOR_BOT_SESSION = "" # Оставьте пустым, если шрифт не используется или путь не задан
+
 
 # --- Настройки Безопасности Gemini ---
 GEMINI_SAFETY_SETTINGS = [
