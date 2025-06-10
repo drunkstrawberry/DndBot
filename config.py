@@ -1,22 +1,18 @@
 import os
 
-# --- Ключи и Настройки Модели ---
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")  # ЗАМЕНИТЕ ВАШИМ КЛЮЧОМ
-GEMINI_MODEL_NAME = "gemini-1.5-flash-latest"
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN") # ЗАМЕНИТЕ ВАШИМ ТОКЕНОМ
 
-# --- Пути к Директориям ---
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+GEMINI_MODEL_NAME = "gemini-1.5-flash-latest"
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+
+# Пути к Директориям
 OUTPUT_DIR_BOT_GENERATED = "telegram_bot_generated_characters"
 PDF_OUTPUT_DIR = os.path.join(OUTPUT_DIR_BOT_GENERATED, "pdfs")
 TEXT_OUTPUT_DIR = os.path.join(OUTPUT_DIR_BOT_GENERATED, "texts")
 FONT_PATH_FOR_BOT_SESSION = os.getenv("FONT_PATH_FOR_BOT_SESSION", "")
-# --- Путь к Шрифту для PDF ---
-# Укажите путь к файлу шрифта DejaVuSans.ttf или другому .ttf шрифту с поддержкой кириллицы
-# Например: FONT_PATH_FOR_BOT_SESSION = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-# Если оставить пустым или None, будет использован стандартный шрифт Helvetica (без кириллицы)
 
 
-# --- Настройки Безопасности Gemini ---
+# Настройки Безопасности Gemini
 GEMINI_SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
     {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
@@ -24,7 +20,7 @@ GEMINI_SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
 ]
 
-# --- Системное Сообщение для Gemini ---
+# Системное Сообщение для Gemini
 SYSTEM_MESSAGE_FULL_CHAR_GEMINI_PREFIX = """Ты - ИИ-ассистент, создающий полных персонажей для Dungeons & Dragons 5-й редакции.
 Твоя задача - сгенерировать Имя, Расу, Класс, Предысторию (Background), Мировоззрение, Характеристики (стандартный набор из 6), стартовый Инвентарь и Предысторию (текстовое описание), Черту Характера, Идеал, Привязанность и Слабость.
 Строго придерживайся материалов из System Reference Document (SRD 5.1).

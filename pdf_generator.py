@@ -1,7 +1,7 @@
 import logging
 import os
 import traceback
-import io # <--- ДОБАВЛЕН ИМПОРТ
+import io
 
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import (
@@ -17,17 +17,17 @@ from reportlab.lib import colors
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase import pdfmetrics
 
-from config import FONT_PATH_FOR_BOT_SESSION # Убедитесь, что этот импорт есть
+from config import FONT_PATH_FOR_BOT_SESSION
 
 logger = logging.getLogger(__name__)
-HAS_DEJAVU_FONT = False # Эта глобальная переменная будет установлена функцией register_font
+HAS_DEJAVU_FONT = False
 
 def register_font():
     """
     Регистрирует шрифт для использования в PDF.
     Эту функцию следует вызывать один раз при старте приложения.
     """
-    global HAS_DEJAVU_FONT # Указываем, что будем изменять глобальную переменную
+    global HAS_DEJAVU_FONT
     if FONT_PATH_FOR_BOT_SESSION and os.path.exists(FONT_PATH_FOR_BOT_SESSION):
         try:
             pdfmetrics.registerFont(TTFont('DejaVuSans', FONT_PATH_FOR_BOT_SESSION))
@@ -35,7 +35,7 @@ def register_font():
             logger.info(f"Шрифт {FONT_PATH_FOR_BOT_SESSION} зарегистрирован для PDF.")
         except Exception as e:
             logger.error(f"Ошибка при регистрации шрифта для PDF: {e}")
-            HAS_DEJAVU_FONT = False # Явно устанавливаем в False при ошибке
+            HAS_DEJAVU_FONT = False
     else:
         path_info = FONT_PATH_FOR_BOT_SESSION if FONT_PATH_FOR_BOT_SESSION else "<<путь не указан в config.py>>"
         logger.warning(f"Файл шрифта для PDF не найден или не определён: '{path_info}'. Будет использован Helvetica.")
@@ -48,14 +48,12 @@ def create_character_sheet_pdf(character_data):
     """
     pdf_buffer = io.BytesIO()
     try:
-        # HAS_DEJAVU_FONT должна быть установлена вызовом register_font() при старте бота
         doc = SimpleDocTemplate(pdf_buffer, pagesize=A4,
                                 rightMargin=40, leftMargin=40,
                                 topMargin=40, bottomMargin=40)
         story = []
 
         styles = getSampleStyleSheet()
-        # Используем значение HAS_DEJAVU_FONT, установленное при старте
         font_name = 'DejaVuSans' if HAS_DEJAVU_FONT else 'Helvetica'
         font_name_bold = 'DejaVuSans' if HAS_DEJAVU_FONT else 'Helvetica-Bold'
 
@@ -107,9 +105,9 @@ def create_character_sheet_pdf(character_data):
 
         doc.build(story)
         logger.info(f"PDF успешно создан в памяти.")
-        pdf_buffer.seek(0) # Важно! Переместить указатель в начало буфера перед возвратом
+        pdf_buffer.seek(0)
         return pdf_buffer
     except Exception as e:
         logger.error(f"Ошибка при создании PDF в памяти: {e}")
         logger.error(traceback.format_exc())
-        return None # Возвращаем None в случае ошибки
+        return None

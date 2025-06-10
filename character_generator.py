@@ -12,7 +12,7 @@ from gemini_utils import (
     parse_character_profile,
     get_timestamp_filename
 )
-from pdf_generator import create_character_sheet_pdf # Убедитесь, что импорт правильный
+from pdf_generator import create_character_sheet_pdf 
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ async def generate_dnd_character_profile_for_bot(
     pdf_buffer_to_return = None # Инициализируем буфер для возврата
 
     if raw_llm_response and not raw_llm_response.startswith(("ЗАПРОС ЗАБЛОКИРОВАН", "КОНТЕНТ ЗАБЛОКИРОВАН", "ОШИБКА API", "Модель не вернула", "Модель вернула пустой")):
-        # Сохранение текстового файла ответа LLM (это можно оставить, если полезно для отладки)
+        # Сохранение текстового файла ответа LLM 
         text_filename_base = f"character_profile_text_{user_id}"
         text_filename_ts = get_timestamp_filename(text_filename_base, "txt", GEMINI_MODEL_NAME)
         text_filepath = os.path.join(TEXT_OUTPUT_DIR, text_filename_ts)
@@ -69,22 +69,6 @@ async def generate_dnd_character_profile_for_bot(
         if parsed_profile: # Только если парсинг был успешным
             # Генерация PDF в памяти
             pdf_buffer_to_return = create_character_sheet_pdf(parsed_profile)
-            # Логика сохранения PDF на диск УДАЛЕНА, так как мы используем буфер.
-            # Если нужно сохранять PDF локально для отладки, можно добавить код сюда,
-            # но он не должен влиять на возвращаемый pdf_buffer_to_return.
-            # Пример (для локальной отладки, НЕ для деплоя на PaaS):
-            # if pdf_buffer_to_return:
-            #     char_name_for_file = "".join(c if c.isalnum() else "_" for c in parsed_profile.get('name', 'UnknownCharacter'))
-            #     debug_pdf_filename_base = f"DEBUG_DND_Character_{char_name_for_file}_{user_id}"
-            #     debug_pdf_filename_ts = get_timestamp_filename(debug_pdf_filename_base, "pdf")
-            #     debug_pdf_filepath = os.path.join(PDF_OUTPUT_DIR, debug_pdf_filename_ts) # Нужен PDF_OUTPUT_DIR в config
-            #     try:
-            #         with open(debug_pdf_filepath, "wb") as f_pdf:
-            #             f_pdf.write(pdf_buffer_to_return.getvalue()) # Записываем содержимое буфера
-            #         logger.info(f"Отладочный PDF сохранен: {debug_pdf_filepath}")
-            #         pdf_buffer_to_return.seek(0) # Важно сбросить указатель буфера после getvalue()
-            #     except Exception as e_save_debug_pdf:
-            #         logger.error(f"Ошибка сохранения отладочного PDF: {e_save_debug_pdf}")
 
 
         return {

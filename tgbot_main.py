@@ -1,22 +1,20 @@
 import nest_asyncio
-nest_asyncio.apply() # Apply this early
+nest_asyncio.apply()
 
 import logging
 import os
-import datetime # For ConversationHandler timeout
+import datetime
 
-from telegram import Update # For type hinting if needed
+from telegram import Update
 from telegram.ext import Application, ConversationHandler, MessageHandler, CommandHandler, filters
 
-# --- Config and Setup ---
 from config import (
     TELEGRAM_BOT_TOKEN,
-    # PDF_OUTPUT_DIR, # Закомментировано, так как PDF генерируется в памяти
     TEXT_OUTPUT_DIR,
-    GOOGLE_API_KEY # For initial check
+    GOOGLE_API_KEY
 )
-# Logger setup must be one of the first imports to configure logging early
-from logger_setup import logger # Imports the already configured logger instance
+
+from logger_setup import logger
 
 from pdf_generator import register_font # Импортируем функцию регистрации шрифта
 from gemini_utils import init_gemini
@@ -38,33 +36,29 @@ from telegram_handlers import (
 )
 
 def main() -> None:
-    # --- Initial Checks and Setup ---
     if not GOOGLE_API_KEY or GOOGLE_API_KEY == "api_ключ_google_ai_studio" or \
        not TELEGRAM_BOT_TOKEN or TELEGRAM_BOT_TOKEN == "токен_твоего_телеграм_бота":
         logger.error("ОШИБКА: API ключ Google или токен Telegram-бота не установлен в config.py.")
         logger.error("Пожалуйста, отредактируйте config.py и введите свои ключи.")
         exit(1)
 
-    if not init_gemini(): # Initialize Gemini and check for success
+    if not init_gemini():
         logger.error("Не удалось инициализировать Gemini. Проверьте API ключ и настройки. Бот не может запуститься.")
         exit(1)
 
     # Создаем директорию только для текстовых логов LLM
-    # os.makedirs(PDF_OUTPUT_DIR, exist_ok=True) # Закомментировано
     os.makedirs(TEXT_OUTPUT_DIR, exist_ok=True)
     logger.info(f"Директория для текстовых логов LLM создана/проверена: {TEXT_OUTPUT_DIR}")
 
     register_font() # Регистрируем шрифт для PDF при старте бота
 
-    # --- Telegram Bot Application ---
-    # Рекомендуется использовать более высокие таймауты для production, если API Gemini может отвечать долго
     application = (
         Application.builder()
         .token(TELEGRAM_BOT_TOKEN)
-        .read_timeout(60) # Увеличено
-        .write_timeout(60) # Увеличено
+        .read_timeout(60)
+        .write_timeout(60)
         .connect_timeout(30)
-        .pool_timeout(60) # Увеличено
+        .pool_timeout(60)
         .build()
     )
 
@@ -81,12 +75,12 @@ def main() -> None:
         },
         fallbacks=[CommandHandler("cancel", cancel), CommandHandler("start", start)],
         per_user=True,
-        conversation_timeout=datetime.timedelta(minutes=20) # Немного увеличено время ожидания
+        conversation_timeout=datetime.timedelta(minutes=20)
     )
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(conv_handler)
-    application.add_handler(CommandHandler("cancel", cancel)) # Дополнительный обработчик отмены вне диалога
+    application.add_handler(CommandHandler("cancel", cancel))
 
     logger.info("Бот запускается...")
     application.run_polling(allowed_updates=Update.ALL_TYPES)

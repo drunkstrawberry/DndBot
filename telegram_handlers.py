@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-# telegram_handlers.py
 import logging
 import os
-import time # For sleep in message splitting
+import time
 from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import (
     CommandHandler,
@@ -12,15 +10,15 @@ from telegram.ext import (
     ConversationHandler,
 )
 
-from character_generator import generate_dnd_character_profile_for_bot # Убедитесь, что этот импорт правильный
+from character_generator import generate_dnd_character_profile_for_bot
 
 logger = logging.getLogger(__name__)
 
-# --- Состояния ConversationHandler ---
+# Состояния ConversationHandler
 (CHOOSE_RACE, CHOOSE_CLASS, CHOOSE_BACKGROUND, CHOOSE_ALIGNMENT,
  GET_LOCATION, GET_STATS_PREF, GET_DETAILS) = range(7)
 
-# --- Опции для клавиатур ---
+# Опции для клавиатур
 srd_races_options = ["Человек", "Эльф (Высший)", "Дварф (Холмовой)", "Полурослик (Легконогий)",
                      "Драконорожденный", "Гном (Лесной)", "Полуэльф", "Полуорк", "Тифлинг", "Авто (SRD раса)"]
 srd_classes_options = ["Варвар", "Бард", "Жрец", "Друид", "Воин", "Монах",
@@ -40,7 +38,7 @@ def create_reply_keyboard(options_list, items_per_row=2):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user = update.effective_user
     await update.message.reply_html(
-        rf"Привет, {user.mention_html()}! Я D&D Генератор Персонажей v0.5 (PDF в памяти!). " # Версия обновлена для примера
+        rf"Привет, {user.mention_html()}! Я D&D Генератор Персонажей v0.5 (PDF в памяти!). "
         "Давай создадим персонажа. Используй /create для начала или /cancel для отмены.",
     )
     context.user_data.clear()
@@ -69,7 +67,7 @@ async def _handle_choice_and_proceed(update: Update, context: ContextTypes.DEFAU
                                    next_state: int,
                                    items_per_row_for_next: int = 2) -> int:
     user_choice = update.message.text.strip()
-    chosen_value_display = "Авто" # По умолчанию, если выбран авто-вариант или пропуск
+    chosen_value_display = "Авто"
 
     # Проверяем, является ли выбор авто-вариантом или пропуском
     is_auto = any(auto_keyword in user_choice.lower() for auto_keyword in ["авто", "случайная", "подходящее", "пропустить", "skip"])
@@ -171,14 +169,13 @@ async def get_details_and_generate(update: Update, context: ContextTypes.DEFAULT
              for i in range(0, len(text_profile), 4090): # Делим с небольшим запасом
                  await update.message.chat.send_action(action="typing")
                  await update.message.reply_text(text_profile[i:i + 4090])
-                 # Используем context.application.bot.send_chat_action если бот инициализирован через Application v20+
                  if hasattr(context, 'application') and hasattr(context.application, 'bot'):
                      await context.application.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
                  time.sleep(0.5) # Небольшая задержка между частями
         else:
             await update.message.reply_text(text_profile)
 
-        # Отправка PDF, если он был успешно сгенерирован (pdf_buffer не None)
+        # Отправка PDF, если он был успешно сгенерирован
         if pdf_buffer:
             try:
                 await update.message.chat.send_action(action="upload_document")
@@ -186,14 +183,11 @@ async def get_details_and_generate(update: Update, context: ContextTypes.DEFAULT
                 # Генерируем имя файла для пользователя
                 char_name_for_file = "UnknownCharacter"
                 if parsed_data and parsed_data.get('name'):
-                    # Очищаем имя персонажа для использования в имени файла
                     char_name_for_file = "".join(c if c.isalnum() else "_" for c in parsed_data.get('name'))
 
                 user_id_str = str(update.effective_user.id)
                 # Формируем уникальное имя файла для пользователя
                 pdf_filename_for_user = f"DND_Character_{char_name_for_file}_{user_id_str}.pdf"
-
-                # pdf_buffer.seek(0) # Этот вызов теперь делается в pdf_generator.py перед возвратом буфера
 
                 await update.message.reply_document(
                     document=pdf_buffer, # Отправляем буфер из памяти

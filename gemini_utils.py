@@ -18,7 +18,6 @@ def init_gemini():
     global model_gemini
     if not GOOGLE_API_KEY or GOOGLE_API_KEY == "api_ключ_google_ai_studio":
         logger.error("ОШИБКА: API ключ Google не установлен в config.py.")
-        # exit() # Рекомендуется обрабатывать это в main, а не выходить из утилиты
         return False
 
     try:
@@ -33,7 +32,6 @@ def init_gemini():
         return True
     except Exception as e:
         logger.error(f"Ошибка инициализации Gemini: {e}")
-        # exit()
         return False
 
 def get_timestamp_filename(base_name, extension, model_name_for_file=""):
@@ -69,10 +67,9 @@ def generate_content_with_gemini(prompt_parts, temperature=0.7, retries=3, delay
                 return "Модель не вернула кандидатов."
 
             generated_text = ""
-            # Corrected way to access text from response.parts for Gemini
-            if hasattr(response, 'text'): # For simple text responses
+            if hasattr(response, 'text'):
                  generated_text = response.text
-            elif response.parts: # For responses with multiple parts
+            elif response.parts:
                  generated_text = "".join(part.text for part in response.parts if hasattr(part, 'text'))
 
 
@@ -89,12 +86,10 @@ def generate_content_with_gemini(prompt_parts, temperature=0.7, retries=3, delay
 
             if not generated_text:
                 reason = candidate.finish_reason.name
-                if reason != "STOP": # STOP is a valid reason for empty text if no content was meant to be generated
+                if reason != "STOP":
                     logger.warning(f"Пустой текст, причина: {reason}")
-                    # return f"Модель вернула пустой текст (причина: {reason})." # Commented out, as empty text can be valid
                 if not response.parts and not hasattr(response, 'text'):
                      logger.warning("Модель вернула пустой ответ без явной причины.")
-                     # return "Модель вернула пустой ответ." # Commented out
 
             logger.info(f"Ответ от {GEMINI_MODEL_NAME} получен.")
             return generated_text
@@ -135,44 +130,33 @@ def parse_character_profile(raw_text):
 
     current_text = raw_text
     for field_ru, field_en in fields_ordered:
-        # Regex to find "Field: Value" until the next field or end of string
-        # (?=\n[А-ЯЁ][\w\s\(\)-]+:|$) looks ahead for a newline, an uppercase Russian letter,
-        # then some word characters/spaces/hyphens/parentheses, then a colon OR end of string.
         pattern = re.compile(rf"^{re.escape(field_ru)}:\s*([\s\S]+?)(?=\n[А-ЯЁ][\w\s\(\)-]+:|$)", re.MULTILINE | re.UNICODE)
         match = pattern.search(current_text)
         if match:
             value = match.group(1).strip()
             profile[field_en] = value
         else:
-            # Looser pattern that doesn't require the field to be at the start of a line
-            # This helps if the LLM output has inconsistent newlines before a field.
             pattern_looser = re.compile(rf"{re.escape(field_ru)}:\s*([\s\S]+?)(?=\n[А-ЯЁ][\w\s\(\)-]+:|$)", re.MULTILINE | re.UNICODE)
-            match_looser = pattern_looser.search(raw_text) # Search in the original raw_text
+            match_looser = pattern_looser.search(raw_text)
             if match_looser:
                  profile[field_en] = match_looser.group(1).strip()
             else:
                 profile[field_en] = "Не указано"
                 logger.warning(f"Не удалось извлечь поле '{field_ru}' из ответа LLM.")
 
-    # Special handling for "Предыстория:" (backstory_text)
-    # It should appear after "Инвентарь:" and before "Черта Характера:"
     backstory_text_match = re.search(
-        r"\nИнвентарь:[^\n]*\n+Предыстория:\s*([\s\S]+?)(?=\nЧерта Характера:|$)", # Added |$ for robustness
+        r"\nИнвентарь:[^\n]*\n+Предыстория:\s*([\s\S]+?)(?=\nЧерта Характера:|$)",
         raw_text,
         re.MULTILINE | re.UNICODE
     )
     if backstory_text_match:
         profile["backstory_text"] = backstory_text_match.group(1).strip()
     else:
-        # Fallback if the above precise pattern fails, try a simpler one for Предыстория:
-        # This one looks for "Предыстория:" not immediately preceded by "(Background)"
-        # and followed by text until the next capitalized field.
         simple_bs_match = re.search(r"(?<!\(Background\):\s*\n)Предыстория:\s*([\s\S]+?)(?=\n[А-ЯЁ][\w\s\(\)-]+:|$)", raw_text, re.MULTILINE | re.UNICODE)
         if simple_bs_match:
-             # Double check it's not actually the Background field if the LLM messed up order
             if "Предыстория (Background):" not in simple_bs_match.group(0):
                  profile["backstory_text"] = simple_bs_match.group(1).strip()
-            else: # It was the (Background) field, mark as not found
+            else:
                  profile["backstory_text"] = "Не удалось извлечь описание предыстории."
                  logger.warning("Не удалось извлечь текстовое описание 'Предыстория:' (возможно, конфликт с 'Предыстория (Background):').")
         else:

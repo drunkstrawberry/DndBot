@@ -1,7 +1,7 @@
 import logging
 
 def setup_logger():
-    logger = logging.getLogger(__name__.split('.')[0]) # Get root logger for the project
+    logger = logging.getLogger(__name__.split('.')[0])
     logger.setLevel(logging.INFO)
 
     if not logger.hasHandlers():
@@ -11,5 +11,5 @@ def setup_logger():
         logger.addHandler(handler)
     return logger
 
-# Инициализируем логгер при импорте модуля, чтобы он был доступен сразу
+# Инициализируем логгер при импорте модуля
 logger = setup_logger()
